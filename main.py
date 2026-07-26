@@ -46,25 +46,32 @@ def run(dry_run=False):
     feed_urls = [row["rss_url"] for row in settings if row["rss_url"]]
     vertical = settings[0]["vertical"] if settings else "일반"
 
+    failures = []
+
     datalab_results = {}
     try:
         datalab_results = _collect_datalab(keywords, os.environ["NAVER_CLIENT_ID"], os.environ["NAVER_CLIENT_SECRET"], date_str)
     except Exception as exc:
-        print(f"⚠️ 데이터랩 수집 실패: {exc}")
+        failures.append(f"⚠️ 데이터랩 수집 실패: {exc}")
 
     rss_items = []
     try:
         rss_items = _collect_rss(feed_urls)
     except Exception as exc:
-        print(f"⚠️ RSS 수집 실패: {exc}")
+        failures.append(f"⚠️ RSS 수집 실패: {exc}")
 
     youtube_results = []
     try:
         youtube_results = _collect_youtube(keywords, os.environ["YOUTUBE_API_KEY"])
     except Exception as exc:
-        print(f"⚠️ 유튜브 수집 실패: {exc}")
+        failures.append(f"⚠️ 유튜브 수집 실패: {exc}")
+
+    for failure in failures:
+        print(failure)
 
     summary = summarizer.summarize(vertical, date_str, datalab_results, rss_items, youtube_results, os.environ["GEMINI_API_KEY"])
+    if failures:
+        summary = summary + "\n\n" + "\n".join(failures)
 
     if dry_run:
         print(summary)

@@ -1,11 +1,17 @@
+import socket
 from calendar import timegm
 from datetime import datetime, timedelta, timezone
 
 import feedparser
 
 
-def fetch_rss_entries(feed_url):
-    feed = feedparser.parse(feed_url)
+def fetch_rss_entries(feed_url, timeout=10):
+    previous_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(timeout)
+    try:
+        feed = feedparser.parse(feed_url)
+    finally:
+        socket.setdefaulttimeout(previous_timeout)
     entries = []
     for entry in feed.entries:
         entries.append(
