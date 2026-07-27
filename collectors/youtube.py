@@ -10,9 +10,9 @@ def fetch_youtube_trending(keyword, api_key, max_results=5):
         "type": "video",
         "order": "viewCount",
         "maxResults": max_results,
-        "key": api_key,
     }
-    response = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=10)
+    headers = {"X-Goog-Api-Key": api_key}
+    response = requests.get(YOUTUBE_SEARCH_URL, params=params, headers=headers, timeout=10)
     response.raise_for_status()
     return response.json()
 

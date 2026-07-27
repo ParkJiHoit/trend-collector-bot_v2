@@ -21,10 +21,11 @@ def test_fetch_youtube_trending_sends_expected_params():
     _, kwargs = mock_get.call_args
     params = kwargs["params"]
     assert params["q"] == "휴대폰 창업"
-    assert params["key"] == "api-key"
+    assert "key" not in params
     assert params["maxResults"] == 5
     assert params["order"] == "viewCount"
     assert params["type"] == "video"
+    assert kwargs["headers"]["X-Goog-Api-Key"] == "api-key"
 
 
 def test_normalize_youtube_response_extracts_fields():

@@ -24,7 +24,7 @@ def test_call_gemini_sends_prompt_in_body():
 
     assert result == {"candidates": [{"content": {"parts": [{"text": "요약 결과"}]}}]}
     _, kwargs = mock_post.call_args
-    assert kwargs["params"]["key"] == "gemini-key"
+    assert kwargs["headers"]["x-goog-api-key"] == "gemini-key"
     assert kwargs["json"]["contents"][0]["parts"][0]["text"] == "프롬프트 내용"
 
 
