@@ -34,6 +34,8 @@ def normalize_datalab_response(response):
     normalized = {}
     for group in response["results"]:
         data = group["data"]
+        if not data:
+            continue
         today = data[-1]["ratio"]
         yesterday = data[-2]["ratio"] if len(data) >= 2 else None
         last_week = data[-8]["ratio"] if len(data) >= 8 else None
