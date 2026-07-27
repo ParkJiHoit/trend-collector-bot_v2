@@ -75,3 +75,30 @@ def test_build_report_blocks_includes_all_sections():
     assert any("휴대폰 창업" in text for text in text_contents)
     assert any("릴스 후킹 문구 트렌드" in text for text in text_contents)
     assert any("휴대폰 창업 브이로그" in text for text in text_contents)
+
+
+def test_datalab_bullet_rounds_percentages_and_marks_missing_as_dash():
+    datalab_results = {"휴대폰 창업": {"today": 93.33333, "vs_yesterday_pct": -6.666669999999996, "vs_last_week_pct": None}}
+
+    blocks = notion_writer.build_report_blocks("요약", datalab_results, [], [])
+
+    bullet = next(b for b in blocks if b["type"] == "bulleted_list_item")
+    spans = bullet["bulleted_list_item"]["rich_text"]
+    assert spans[0]["text"]["content"] == "휴대폰 창업"
+    assert spans[1]["text"]["content"] == ": 93.3 (전일대비 -6.7% · 전주대비 -)"
+
+
+def test_youtube_bullets_are_deduplicated_by_video_id():
+    youtube_results = [
+        {"title": "영상 A", "video_id": "id1", "channel": "채널1"},
+        {"title": "영상 A", "video_id": "id1", "channel": "채널1"},
+        {"title": "영상 B", "video_id": "id2", "channel": "채널2"},
+    ]
+
+    blocks = notion_writer.build_report_blocks("요약", {}, [], youtube_results)
+
+    video_bullets = [
+        b for b in blocks
+        if b["type"] == "bulleted_list_item" and b["bulleted_list_item"]["rich_text"][0]["text"].get("link")
+    ]
+    assert len(video_bullets) == 2
