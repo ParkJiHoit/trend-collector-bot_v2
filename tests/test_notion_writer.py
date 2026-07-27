@@ -26,6 +26,19 @@ def test_build_report_properties_shape():
     assert "https://example.com/a" in props["RSS 원본 링크"]["rich_text"][0]["text"]["content"]
 
 
+def test_build_report_properties_chunks_long_rss_links_under_2000_chars():
+    long_links = [f"https://news.google.com/rss/articles/{'a' * 200}?item={i}" for i in range(15)]
+
+    props = notion_writer.build_report_properties("2026-07-27", "창업/프랜차이즈", "요약", [], long_links)
+
+    chunks = props["RSS 원본 링크"]["rich_text"]
+    assert len(chunks) > 1
+    for chunk in chunks:
+        assert len(chunk["text"]["content"]) <= 2000
+    rejoined = "".join(chunk["text"]["content"] for chunk in chunks)
+    assert "\n".join(long_links) == rejoined
+
+
 def test_write_trend_log_entries_calls_create_page_per_entry():
     entries = [
         {"date": "2026-07-27", "keyword": "휴대폰 창업", "source": "데이터랩", "value": 74.0, "vs_yesterday": 12.3, "vs_last_week": 30.0},

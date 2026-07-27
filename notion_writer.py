@@ -12,15 +12,27 @@ def build_log_properties(date, keyword, source, value, vs_yesterday, vs_last_wee
     }
 
 
+RICH_TEXT_CHUNK_SIZE = 2000
+
+
+def _chunk_rich_text(text):
+    if not text:
+        return [{"text": {"content": ""}}]
+    return [
+        {"text": {"content": text[i:i + RICH_TEXT_CHUNK_SIZE]}}
+        for i in range(0, len(text), RICH_TEXT_CHUNK_SIZE)
+    ]
+
+
 def build_report_properties(date, vertical, summary, top_keywords, rss_links):
     links_text = "\n".join(rss_links)
     return {
         "제목": {"title": [{"text": {"content": f"{date} {vertical} 트렌드 리포트"}}]},
         "날짜": {"date": {"start": date}},
         "버티컬": {"select": {"name": vertical}},
-        "요약": {"rich_text": [{"text": {"content": summary}}]},
+        "요약": {"rich_text": _chunk_rich_text(summary)},
         "급상승 키워드": {"multi_select": [{"name": kw} for kw in top_keywords]},
-        "RSS 원본 링크": {"rich_text": [{"text": {"content": links_text}}]},
+        "RSS 원본 링크": {"rich_text": _chunk_rich_text(links_text)},
     }
 
 
