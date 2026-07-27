@@ -109,6 +109,20 @@ def _dedupe_by_video_id(youtube_results):
     return deduped
 
 
+def _dedupe_by_link(rss_items):
+    seen = set()
+    deduped = []
+    for item in rss_items:
+        if item["link"] in seen:
+            continue
+        seen.add(item["link"])
+        deduped.append(item)
+    return deduped
+
+
+MAX_REPORT_BLOCKS = 100
+
+
 def build_report_blocks(summary, datalab_results, rss_items, youtube_results):
     blocks = [_heading("AI 요약")]
     blocks.extend(_markdown_to_blocks(summary))
@@ -133,11 +147,16 @@ def build_report_blocks(summary, datalab_results, rss_items, youtube_results):
         blocks.append(_paragraph("(수집된 영상 없음)"))
 
     blocks.append(_heading("RSS 신규 글"))
-    if rss_items:
-        for item in rss_items:
+    deduped_rss = _dedupe_by_link(rss_items)
+    if deduped_rss:
+        for item in deduped_rss[:15]:
             blocks.append(_bullet(item["title"], link=item["link"]))
     else:
         blocks.append(_paragraph("(수집된 글 없음)"))
+
+    if len(blocks) > MAX_REPORT_BLOCKS:
+        blocks = blocks[:MAX_REPORT_BLOCKS - 1]
+        blocks.append(_paragraph("(내용이 많아 일부 생략됨)"))
 
     return blocks
 

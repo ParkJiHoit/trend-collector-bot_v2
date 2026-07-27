@@ -139,3 +139,28 @@ def test_youtube_bullets_are_deduplicated_by_video_id():
         if b["type"] == "bulleted_list_item" and b["bulleted_list_item"]["rich_text"][0]["text"].get("link")
     ]
     assert len(video_bullets) == 2
+
+
+def test_rss_bullets_are_deduplicated_and_capped_at_15():
+    rss_items = [{"title": "기사 A", "link": "https://example.com/a"}] * 3 + [
+        {"title": f"기사 {i}", "link": f"https://example.com/{i}"} for i in range(20)
+    ]
+
+    blocks = notion_writer.build_report_blocks("요약", {}, rss_items, [])
+
+    rss_bullets = [
+        b for b in blocks
+        if b["type"] == "bulleted_list_item" and b["bulleted_list_item"]["rich_text"][0]["text"].get("link")
+    ]
+    assert len(rss_bullets) == 15
+
+
+def test_build_report_blocks_never_exceeds_notion_block_limit():
+    datalab_results = {f"키워드{i}": {"today": 10.0, "vs_yesterday_pct": None, "vs_last_week_pct": None} for i in range(20)}
+    rss_items = [{"title": f"기사 {i}", "link": f"https://example.com/{i}"} for i in range(50)]
+    youtube_results = [{"title": f"영상 {i}", "video_id": f"id{i}", "channel": "채널"} for i in range(50)]
+    long_summary = "\n".join(f"문단 {i} 내용" for i in range(50))
+
+    blocks = notion_writer.build_report_blocks(long_summary, datalab_results, rss_items, youtube_results)
+
+    assert len(blocks) <= 100
