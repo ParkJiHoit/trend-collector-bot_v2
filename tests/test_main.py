@@ -29,3 +29,29 @@ def test_run_continues_when_youtube_collector_fails(capsys):
     mock_summarize.assert_called_once()
     mock_log.assert_not_called()
     mock_report.assert_not_called()
+
+
+def test_run_writes_notion_even_when_summarizer_fails(capsys):
+    with patch("main.config.load_settings", return_value=SETTINGS), \
+         patch("main.datalab.fetch_datalab_group", return_value={"results": []}), \
+         patch("main.datalab.normalize_datalab_response", return_value={}), \
+         patch("main.rss.fetch_rss_entries", return_value=[]), \
+         patch("main.rss.filter_recent_entries", return_value=[]), \
+         patch("main.youtube.fetch_youtube_trending", return_value={"items": []}), \
+         patch("main.youtube.normalize_youtube_response", return_value=[]), \
+         patch("main.summarizer.summarize", side_effect=Exception("429 rate limited")), \
+         patch("main.notion_writer.write_trend_log_entries") as mock_log, \
+         patch("main.notion_writer.write_report") as mock_report, \
+         patch.dict("os.environ", {
+             "NAVER_CLIENT_ID": "x", "NAVER_CLIENT_SECRET": "x", "YOUTUBE_API_KEY": "x",
+             "NOTION_TOKEN": "x", "NOTION_SETTINGS_DB_ID": "x", "NOTION_LOG_DB_ID": "x",
+             "NOTION_REPORT_DB_ID": "x", "GEMINI_API_KEY": "x",
+         }):
+        main.run(dry_run=False)
+
+    captured = capsys.readouterr()
+    assert "AI 요약 실패" in captured.out
+    mock_log.assert_called_once()
+    mock_report.assert_called_once()
+    report_summary_arg = mock_report.call_args[0][2]
+    assert "AI 요약 실패" in report_summary_arg
