@@ -1,4 +1,5 @@
 from unittest.mock import patch, MagicMock
+import requests
 from collectors import datalab
 
 RAW_RESPONSE = {
@@ -40,6 +41,19 @@ def test_fetch_datalab_group_posts_expected_body():
     assert body["keywordGroups"] == [{"groupName": "휴대폰 창업", "keywords": ["휴대폰 창업"]}]
     assert body["startDate"] == "2026-07-19"
     assert body["endDate"] == "2026-07-26"
+
+
+def test_fetch_datalab_group_retries_once_on_timeout_then_succeeds():
+    fake_response = MagicMock(status_code=200)
+    fake_response.json.return_value = RAW_RESPONSE
+    with patch(
+        "collectors.datalab.requests.post",
+        side_effect=[requests.exceptions.ConnectTimeout("timed out"), fake_response],
+    ) as mock_post:
+        result = datalab.fetch_datalab_group(["휴대폰 창업"], "id", "secret", "2026-07-19", "2026-07-26")
+
+    assert result == RAW_RESPONSE
+    assert mock_post.call_count == 2
 
 
 def test_normalize_datalab_response_computes_deltas():
