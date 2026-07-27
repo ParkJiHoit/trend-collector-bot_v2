@@ -12,27 +12,12 @@ def build_log_properties(date, keyword, source, value, vs_yesterday, vs_last_wee
     }
 
 
-RICH_TEXT_CHUNK_SIZE = 2000
-
-
-def _chunk_rich_text(text):
-    if not text:
-        return [{"text": {"content": ""}}]
-    return [
-        {"text": {"content": text[i:i + RICH_TEXT_CHUNK_SIZE]}}
-        for i in range(0, len(text), RICH_TEXT_CHUNK_SIZE)
-    ]
-
-
-def build_report_properties(date, vertical, summary, top_keywords, rss_links):
-    links_text = "\n".join(rss_links)
+def build_report_properties(date, vertical, top_keywords):
     return {
         "제목": {"title": [{"text": {"content": f"{date} {vertical} 트렌드 리포트"}}]},
         "날짜": {"date": {"start": date}},
         "버티컬": {"select": {"name": vertical}},
-        "요약": {"rich_text": _chunk_rich_text(summary)},
         "급상승 키워드": {"multi_select": [{"name": kw} for kw in top_keywords]},
-        "RSS 원본 링크": {"rich_text": _chunk_rich_text(links_text)},
     }
 
 
@@ -49,6 +34,39 @@ def _bullet(text, link=None):
     if link:
         text_obj["text"]["link"] = {"url": link}
     return {"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [text_obj]}}
+
+
+def _inline_spans(text):
+    spans = []
+    for i, segment in enumerate(text.split("**")):
+        if not segment:
+            continue
+        span = {"type": "text", "text": {"content": segment[:2000]}}
+        if i % 2 == 1:
+            span["annotations"] = {"bold": True}
+        spans.append(span)
+    return spans or [{"type": "text", "text": {"content": ""}}]
+
+
+def _markdown_to_blocks(markdown_text):
+    blocks = []
+    for raw_line in markdown_text.replace("<br>", "\n").split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line == "---":
+            blocks.append({"object": "block", "type": "divider", "divider": {}})
+        elif line.startswith("### "):
+            blocks.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": _inline_spans(line[4:])}})
+        elif line.startswith("## "):
+            blocks.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": _inline_spans(line[3:])}})
+        elif line.startswith("# "):
+            blocks.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": _inline_spans(line[2:])}})
+        elif line.startswith("* ") or line.startswith("- "):
+            blocks.append({"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": _inline_spans(line[2:])}})
+        else:
+            blocks.append({"object": "block", "type": "paragraph", "paragraph": {"rich_text": _inline_spans(line)}})
+    return blocks or [_paragraph("(요약 없음)")]
 
 
 def _bullet_with_bold_prefix(bold_text, rest_text):
@@ -92,7 +110,9 @@ def _dedupe_by_video_id(youtube_results):
 
 
 def build_report_blocks(summary, datalab_results, rss_items, youtube_results):
-    blocks = [_heading("AI 요약"), _paragraph(summary or "(요약 없음)"), _heading("데이터랩 검색 지수")]
+    blocks = [_heading("AI 요약")]
+    blocks.extend(_markdown_to_blocks(summary))
+    blocks.append(_heading("데이터랩 검색 지수"))
 
     if datalab_results:
         for keyword, stats in datalab_results.items():
@@ -132,7 +152,6 @@ def write_trend_log_entries(entries, log_db_id, token):
 
 def write_report(date, vertical, summary, datalab_results, rss_items, youtube_results, report_db_id, token):
     top_keywords = list(datalab_results.keys())
-    rss_links = [item["link"] for item in rss_items]
-    properties = build_report_properties(date, vertical, summary, top_keywords, rss_links)
+    properties = build_report_properties(date, vertical, top_keywords)
     children = build_report_blocks(summary, datalab_results, rss_items, youtube_results)
     return notion_api.create_page(report_db_id, properties, token, children=children)
