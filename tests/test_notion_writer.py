@@ -14,29 +14,14 @@ def test_build_log_properties_shape():
 
 
 def test_build_report_properties_shape():
-    props = notion_writer.build_report_properties(
-        "2026-07-27", "창업/프랜차이즈", "요약 내용", ["휴대폰 창업"], ["https://example.com/a"]
-    )
+    props = notion_writer.build_report_properties("2026-07-27", "창업/프랜차이즈", ["휴대폰 창업"])
 
     assert props["제목"]["title"][0]["text"]["content"] == "2026-07-27 창업/프랜차이즈 트렌드 리포트"
     assert props["날짜"]["date"]["start"] == "2026-07-27"
     assert props["버티컬"]["select"]["name"] == "창업/프랜차이즈"
-    assert props["요약"]["rich_text"][0]["text"]["content"] == "요약 내용"
     assert props["급상승 키워드"]["multi_select"] == [{"name": "휴대폰 창업"}]
-    assert "https://example.com/a" in props["RSS 원본 링크"]["rich_text"][0]["text"]["content"]
-
-
-def test_build_report_properties_chunks_long_rss_links_under_2000_chars():
-    long_links = [f"https://news.google.com/rss/articles/{'a' * 200}?item={i}" for i in range(15)]
-
-    props = notion_writer.build_report_properties("2026-07-27", "창업/프랜차이즈", "요약", [], long_links)
-
-    chunks = props["RSS 원본 링크"]["rich_text"]
-    assert len(chunks) > 1
-    for chunk in chunks:
-        assert len(chunk["text"]["content"]) <= 2000
-    rejoined = "".join(chunk["text"]["content"] for chunk in chunks)
-    assert "\n".join(long_links) == rejoined
+    assert "요약" not in props
+    assert "RSS 원본 링크" not in props
 
 
 def test_write_trend_log_entries_calls_create_page_per_entry():
@@ -70,6 +55,8 @@ def test_write_report_calls_create_page_once():
     assert args[0] == "report-db"
     assert args[2] == "token"
     assert args[1]["급상승 키워드"]["multi_select"] == [{"name": "휴대폰 창업"}]
+    assert "요약" not in args[1]
+    assert "RSS 원본 링크" not in args[1]
     assert len(kwargs["children"]) > 0
 
 
@@ -99,6 +86,43 @@ def test_datalab_bullet_rounds_percentages_and_marks_missing_as_dash():
     spans = bullet["bulleted_list_item"]["rich_text"]
     assert spans[0]["text"]["content"] == "휴대폰 창업"
     assert spans[1]["text"]["content"] == ": 93.3 (전일대비 -6.7% · 전주대비 -)"
+
+
+def test_markdown_summary_converts_headers_bold_and_dividers():
+    summary = "### 제목\n**굵은 글씨** 일반 텍스트\n---\n* 목록 항목"
+
+    blocks = notion_writer.build_report_blocks(summary, {}, [], [])
+
+    heading = next(b for b in blocks if b["type"] == "heading_3")
+    assert heading["heading_3"]["rich_text"][0]["text"]["content"] == "제목"
+
+    paragraph = next(
+        b for b in blocks
+        if b["type"] == "paragraph" and b["paragraph"]["rich_text"][0]["text"]["content"] == "굵은 글씨"
+    )
+    spans = paragraph["paragraph"]["rich_text"]
+    assert spans[0].get("annotations", {}).get("bold") is True
+    assert spans[1]["text"]["content"] == " 일반 텍스트"
+    assert spans[1].get("annotations", {}).get("bold") is not True
+
+    assert any(b["type"] == "divider" for b in blocks)
+
+    bullet = next(
+        b for b in blocks
+        if b["type"] == "bulleted_list_item" and b["bulleted_list_item"]["rich_text"][0]["text"]["content"] == "목록 항목"
+    )
+    assert bullet is not None
+
+
+def test_markdown_summary_handles_br_tags_as_line_breaks():
+    summary = "첫 줄<br><br>둘째 줄"
+
+    blocks = notion_writer.build_report_blocks(summary, {}, [], [])
+
+    paragraphs = [b for b in blocks if b["type"] == "paragraph"]
+    contents = [p["paragraph"]["rich_text"][0]["text"]["content"] for p in paragraphs]
+    assert "첫 줄" in contents
+    assert "둘째 줄" in contents
 
 
 def test_youtube_bullets_are_deduplicated_by_video_id():
