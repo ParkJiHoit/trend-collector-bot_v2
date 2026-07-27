@@ -29,6 +29,8 @@ def build_prompt(vertical, date, datalab_results, rss_items, youtube_results):
 def call_gemini(prompt, api_key):
     body = {"contents": [{"parts": [{"text": prompt}]}]}
     response = requests.post(GEMINI_URL, params={"key": api_key}, json=body, timeout=30)
+    if not response.ok:
+        print(f"⚠️ Gemini API error {response.status_code}: {response.text}")
     response.raise_for_status()
     return response.json()
 
