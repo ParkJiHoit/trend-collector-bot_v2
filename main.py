@@ -25,7 +25,9 @@ def _collect_rss(feed_urls):
     items = []
     for url in feed_urls:
         entries = rss.fetch_rss_entries(url)
-        items.extend(rss.filter_recent_entries(entries))
+        recent = rss.filter_recent_entries(entries)
+        print(f"ℹ️ RSS {url}: 전체 {len(entries)}건 수집, 48시간 이내 {len(recent)}건")
+        items.extend(recent)
     return items
 
 
