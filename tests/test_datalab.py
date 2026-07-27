@@ -65,3 +65,12 @@ def test_normalize_datalab_response_handles_short_history():
     assert entry["today"] == 10.0
     assert entry["yesterday"] is None
     assert entry["vs_yesterday_pct"] is None
+
+
+def test_normalize_datalab_response_skips_empty_data():
+    empty_response = {
+        "results": [{"title": "검색량 없는 키워드", "keywords": ["검색량 없는 키워드"], "data": []}]
+    }
+    result = datalab.normalize_datalab_response(empty_response)
+
+    assert result == {}
