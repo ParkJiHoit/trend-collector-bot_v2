@@ -1,6 +1,7 @@
 import requests
 
 DATALAB_URL = "https://openapi.naver.com/v1/datalab/search"
+REQUEST_TIMEOUT = 15
 
 
 def chunk_keywords(keywords, size=5):
@@ -19,7 +20,10 @@ def fetch_datalab_group(keywords, client_id, client_secret, start_date, end_date
         "timeUnit": "date",
         "keywordGroups": [{"groupName": kw, "keywords": [kw]} for kw in keywords],
     }
-    response = requests.post(DATALAB_URL, headers=headers, json=body, timeout=10)
+    try:
+        response = requests.post(DATALAB_URL, headers=headers, json=body, timeout=REQUEST_TIMEOUT)
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+        response = requests.post(DATALAB_URL, headers=headers, json=body, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     return response.json()
 
