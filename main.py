@@ -21,12 +21,15 @@ def _collect_datalab(keywords, client_id, client_secret, date_str):
     return results
 
 
+RSS_RECENCY_HOURS = 24 * 7
+
+
 def _collect_rss(feed_urls):
     items = []
     for url in feed_urls:
         entries = rss.fetch_rss_entries(url)
-        recent = rss.filter_recent_entries(entries)
-        print(f"ℹ️ RSS {url}: 전체 {len(entries)}건 수집, 48시간 이내 {len(recent)}건")
+        recent = rss.filter_recent_entries(entries, since_hours=RSS_RECENCY_HOURS)
+        print(f"ℹ️ RSS {url}: 전체 {len(entries)}건 수집, {RSS_RECENCY_HOURS}시간 이내 {len(recent)}건")
         items.extend(recent)
     return items
 
