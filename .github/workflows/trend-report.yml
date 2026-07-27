@@ -27,3 +27,4 @@ jobs:
           NOTION_LOG_DB_ID: ${{ secrets.NOTION_LOG_DB_ID }}
           NOTION_REPORT_DB_ID: ${{ secrets.NOTION_REPORT_DB_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
