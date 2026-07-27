@@ -19,6 +19,8 @@ def _request(method, path, token, **kwargs):
         time.sleep(float(response.headers.get("Retry-After", 1)))
         response = requests.request(method, url, headers=headers, timeout=10, **kwargs)
 
+    if not response.ok:
+        print(f"⚠️ Notion API error {response.status_code}: {response.text}")
     response.raise_for_status()
     return response.json()
 
