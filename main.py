@@ -69,7 +69,12 @@ def run(dry_run=False):
     for failure in failures:
         print(failure)
 
-    summary = summarizer.summarize(vertical, date_str, datalab_results, rss_items, youtube_results, os.environ["GEMINI_API_KEY"])
+    summary = ""
+    try:
+        summary = summarizer.summarize(vertical, date_str, datalab_results, rss_items, youtube_results, os.environ["GEMINI_API_KEY"])
+    except Exception as exc:
+        failures.append(f"⚠️ AI 요약 실패: {exc}")
+        print(failures[-1])
     if failures:
         summary = summary + "\n\n" + "\n".join(failures)
 
