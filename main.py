@@ -88,9 +88,10 @@ def run(dry_run=False):
     ]
     notion_writer.write_trend_log_entries(log_entries, os.environ["NOTION_LOG_DB_ID"], os.environ["NOTION_TOKEN"])
 
-    top_keywords = list(datalab_results.keys())
-    rss_links = [item["link"] for item in rss_items]
-    notion_writer.write_report(date_str, vertical, summary, top_keywords, rss_links, os.environ["NOTION_REPORT_DB_ID"], os.environ["NOTION_TOKEN"])
+    notion_writer.write_report(
+        date_str, vertical, summary, datalab_results, rss_items, youtube_results,
+        os.environ["NOTION_REPORT_DB_ID"], os.environ["NOTION_TOKEN"],
+    )
 
 
 if __name__ == "__main__":

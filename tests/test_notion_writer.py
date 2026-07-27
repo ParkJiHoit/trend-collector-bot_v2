@@ -41,13 +41,37 @@ def test_write_trend_log_entries_calls_create_page_per_entry():
 
 
 def test_write_report_calls_create_page_once():
+    datalab_results = {"휴대폰 창업": {"today": 74.0, "vs_yesterday_pct": 12.3, "vs_last_week_pct": 30.0}}
+    rss_items = [{"title": "릴스 후킹 문구 트렌드", "link": "https://example.com/a"}]
+    youtube_results = [{"title": "휴대폰 창업 브이로그", "video_id": "abc123", "channel": "창업채널"}]
+
     with patch("notion_writer.notion_api.create_page", return_value={"id": "page1"}) as mock_create:
         result = notion_writer.write_report(
-            "2026-07-27", "창업/프랜차이즈", "요약 내용", ["휴대폰 창업"], ["https://example.com/a"], "report-db", "token"
+            "2026-07-27", "창업/프랜차이즈", "요약 내용", datalab_results, rss_items, youtube_results, "report-db", "token"
         )
 
     assert result == {"id": "page1"}
     mock_create.assert_called_once()
     args = mock_create.call_args[0]
+    kwargs = mock_create.call_args[1]
     assert args[0] == "report-db"
     assert args[2] == "token"
+    assert args[1]["급상승 키워드"]["multi_select"] == [{"name": "휴대폰 창업"}]
+    assert len(kwargs["children"]) > 0
+
+
+def test_build_report_blocks_includes_all_sections():
+    datalab_results = {"휴대폰 창업": {"today": 74.0, "vs_yesterday_pct": 12.3, "vs_last_week_pct": 30.0}}
+    rss_items = [{"title": "릴스 후킹 문구 트렌드", "link": "https://example.com/a"}]
+    youtube_results = [{"title": "휴대폰 창업 브이로그", "video_id": "abc123", "channel": "창업채널"}]
+
+    blocks = notion_writer.build_report_blocks("최종 요약", datalab_results, rss_items, youtube_results)
+
+    text_contents = [
+        block[block["type"]]["rich_text"][0]["text"]["content"]
+        for block in blocks
+    ]
+    assert "최종 요약" in text_contents
+    assert any("휴대폰 창업" in text for text in text_contents)
+    assert any("릴스 후킹 문구 트렌드" in text for text in text_contents)
+    assert any("휴대폰 창업 브이로그" in text for text in text_contents)
