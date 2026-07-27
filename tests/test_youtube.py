@@ -39,3 +39,23 @@ def test_normalize_youtube_response_extracts_fields():
             "published_at": "2026-07-25T10:00:00Z",
         }
     ]
+
+
+def test_normalize_youtube_response_decodes_html_entities():
+    response = {
+        "items": [
+            {
+                "id": {"videoId": "xyz789"},
+                "snippet": {
+                    "title": "&#39;OOO 창업?&#39; &quot;대박&quot; 후기",
+                    "channelTitle": "A&amp;B 채널",
+                    "publishedAt": "2026-07-25T10:00:00Z",
+                },
+            }
+        ]
+    }
+
+    result = youtube.normalize_youtube_response(response)
+
+    assert result[0]["title"] == "'OOO 창업?' \"대박\" 후기"
+    assert result[0]["channel"] == "A&B 채널"

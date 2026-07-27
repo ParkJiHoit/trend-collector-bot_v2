@@ -1,3 +1,5 @@
+import html
+
 import requests
 
 YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
@@ -23,9 +25,9 @@ def normalize_youtube_response(response):
         snippet = item["snippet"]
         normalized.append(
             {
-                "title": snippet["title"],
+                "title": html.unescape(snippet["title"]),
                 "video_id": item["id"]["videoId"],
-                "channel": snippet["channelTitle"],
+                "channel": html.unescape(snippet["channelTitle"]),
                 "published_at": snippet["publishedAt"],
             }
         )
